@@ -180,4 +180,4 @@ def update_model_type(model_type):
     return jsonify({"model": MODEL.gen_json_data("plotting"), "errors": MODEL.errors, "model_coefs": MODEL.coefs_()})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
