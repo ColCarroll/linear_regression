@@ -1,1 +1,1 @@
-web: gunicorn angular_example:app --log-file=-
+web: gunicorn __main__:app --log-file=-
