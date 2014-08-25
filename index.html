@@ -1,0 +1,122 @@
+<!doctype html>
+<html ng-app="linearRegressionApp">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title></title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width">
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+    <style>
+        body {
+            font: 10px sans-serif;
+        }
+        .axis line {
+            stroke: #000;
+        }
+        path {
+            fill: none;
+            stroke: #666;
+            stroke-width: 1px;
+        }
+    </style>
+</head>
+<body>
+
+<a href="https://github.com/ColCarroll/flask_angular_example"><img style="position: absolute; top: 0; right: 0; border: 0; z-index: 1050;" src="https://camo.githubusercontent.com/365986a132ccd6a44c23a9169022c0b5c890c387/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f7265645f6161303030302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png"></a>
+<div class="jumbotron">
+    <div class="container">
+        <h1>Linear Regression, overfitting, and regularization</h1>
+        <p>Providing controls to generate a sample data set with a polynomial, and then fit a
+           polynomial to the data set using (non-regularized) least squares,
+            <a href="http://en.wikipedia.org/wiki/Tikhonov_regularization">ridge regression</a>, or
+            <a href="http://en.wikipedia.org/wiki/Lasso_regression#Lasso_method">Lasso regression</a>.
+    </div>
+</div>
+
+<div class="container" ng-controller="ModelCtrl">
+    <div class="row">
+        <div class="col-sm-3">
+            <h2>Parameters</h2>
+            <form class="form-horizontal">
+                <div class="form-group">
+                    <label class="col-sm-4 control-label">Training Data Points:</label>
+                    <div class="col-sm-8">
+                        <input class="form-control" type="number" min="1" max="1000" step="1" ng-model="parameters.points.training" ng-change="getData('training');">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-4 control-label">Data Noise:</label>
+                    <div class="col-sm-8">
+                        <input class="form-control" type="number" min="0" max="1" step="0.01" ng-model="parameters.noise" ng-change="getData('training'); getData('testing');">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-4 control-label">Testing Data Points:</label>
+                    <div class="col-sm-8">
+                        <input class="form-control" type="number" min="1" max="1000" step="1" ng-model="parameters.points.testing" ng-change="getData('testing');">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-4 control-label">Fitting Polynomial Degree:</label>
+                    <div class="col-sm-8">
+                        <input class="form-control" type="number" min="0" max="1000" step="1" ng-model="parameters.degree" ng-change="updateDegree();">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-4 control-label">Regression Type:</label>
+                    <div class="col-sm-8">
+                        <select type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" ng-model="parameters.modelType" ng-options="modelType.value for modelType in modelTypes" ng-change="updateModelType()"></select>
+                    </div>
+                </div>
+                <div ng-show="showAlpha" class="form-group">
+                    <label class="col-sm-4 control-label">Regularization Strength (log10):</label>
+                    <div class="col-sm-8">
+                        <input class="form-control" type="number" min="-5" max="5" step="0.5" ng-model="parameters.alpha" ng-change="updateAlpha();">
+                    </div>
+                </div>
+                <h4>Generating Polynomial Coefficients</h4>
+                <div class="form-group" ng-repeat="coef in parameters.coeffs">
+                    <label class="col-sm-4 control-label">{{$index}}-degree coefficient:</label>
+                    <div class="col-sm-8">
+                        <input class="form-control" type="number" min="-5" max="5" step=".1" ng-model="coef.val" ng-change="updateCoeffs();">
+                    </div>
+                </div>
+                <div class="row">
+                    <button ng-click="addCoefficient()" class="btn btn-primary">Add coefficient</button>
+                    <button ng-click="removeCoefficient()" class="btn btn-primary">Remove coefficient</button>
+                </div>
+            </form>
+        </div>
+        <div class="col-sm-9">
+            <div class="row">
+                <ul style="list-style-type: none;">
+                    <li>Actual : <span mathjax-bind="texCoeffs"></span></li>
+                    <li>Computed : <span mathjax-bind="modelCoefs"></span></li>
+                </ul>
+            </div>
+            <div class="col-sm-6">
+                <h2>Training Data</h2><h4>(Error = {{ errors.training }})</h4>
+                <training-scatter point-data="data.training" line-data="model"></training-scatter>
+            </div>
+            <div class="col-sm-6">
+                <h2>Testing Data</h2><h4>(Error = {{ errors.testing }})</h4>
+                <training-scatter point-data="data.testing" line-data="model"></training-scatter>
+            </div>
+        </div>
+    </div>
+    <hr>
+
+</div>
+
+<script type="text/javascript"
+        src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/angular.js/1.2.16/angular.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/angular.js/1.2.16/angular-route.js"></script>
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+<script src="static/app.js"></script>
+</body>
+</html>
