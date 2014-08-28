@@ -75,6 +75,12 @@
                         <input class="form-control" type="number" min="-5" max="5" step="0.5" ng-model="parameters.alpha" ng-change="updateAlpha();">
                     </div>
                 </div>
+                <div class="form-group">
+                    <label class="col-sm-4 control-label">Regression Type:</label>
+                    <div class="col-sm-8">
+                        <input type="checkbox" ng-model="parameters.normalize" ng-change="updateNormalize();"> Normalize features
+                    </div>
+                </div>
                 <h4>Generating Polynomial Coefficients</h4>
                 <div class="form-group" ng-repeat="coef in parameters.coeffs">
                     <label class="col-sm-4 control-label">{{$index}}-degree coefficient:</label>

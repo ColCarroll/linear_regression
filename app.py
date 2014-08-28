@@ -2,6 +2,7 @@ import os
 import numpy
 import numpy.random
 from sklearn import linear_model
+from sklearn.preprocessing import normalize
 from flask import Flask, make_response, jsonify, request
 
 DIR = os.path.dirname(os.path.abspath(__file__))
@@ -15,7 +16,7 @@ class Modeler:
     data_types = ("training", "testing", "plotting")
 
     def __init__(self):
-        self.data_sets = {key: {"x": None, "y": None, "preds": None} for key in self.data_types}
+        self.data_sets = {key: {"x": None, "y": None, "preds": None, "norm": None} for key in self.data_types}
         self.features = {key: None for key in self.data_types}
         self.__errors = {key: 0 for key in self.data_types if key != "plotting"}
         self.eps = None
@@ -26,6 +27,7 @@ class Modeler:
         self.alpha = 1.0
         self.model_type = None
         self.data_sets["plotting"]["x"] = numpy.linspace(self.x_min, self.x_max, 250)
+        self.normalize = False
 
     def update_model_type(self, model_type):
         self.model_type = model_type
@@ -36,6 +38,11 @@ class Modeler:
         else:
             self.model = linear_model.LinearRegression()
         self.update_model()
+
+    def update_normalize(self, should_normalize):
+        if should_normalize != self.normalize:
+            self.normalize = should_normalize
+            self.update_model()
 
     def update_alpha(self, alpha):
         self.alpha = 10 ** alpha
@@ -79,9 +86,15 @@ class Modeler:
 
     def update_model(self):
         if self.features["training"] is not None:
-            self.model.fit(self.features["training"], self.data_sets["training"]["y"])
+            if self.normalize:
+                self.model.fit(normalize(self.features["training"], axis=1, norm='l1'), self.data_sets["training"]["y"])
+            else:
+                self.model.fit(self.features["training"], self.data_sets["training"]["y"])
             for data_set in self.features.iterkeys():
-                self.data_sets[data_set]["preds"] = self.model.predict(self.features[data_set])
+                if self.normalize:
+                    self.data_sets[data_set]["preds"] = self.model.predict(normalize(self.features[data_set], axis=1, norm='l1'))
+                else:
+                    self.data_sets[data_set]["preds"] = self.model.predict(self.features[data_set])
                 if data_set == "plotting":
                     self.__errors[data_set] = 0
                 else:
@@ -165,6 +178,7 @@ def update_model():
     MODEL.update_model()
     return jsonify({"model": MODEL.gen_json_data("plotting"), "errors": MODEL.errors, "model_coefs": MODEL.coefs_()})
 
+
 @app.route('/api/alpha/<alpha>')
 def update_alpha(alpha):
     try:
@@ -174,10 +188,19 @@ def update_alpha(alpha):
     MODEL.update_alpha(alpha)
     return jsonify({"model": MODEL.gen_json_data("plotting"), "errors": MODEL.errors, "model_coefs": MODEL.coefs_()})
 
+
 @app.route('/api/model_type/<model_type>')
 def update_model_type(model_type):
     MODEL.update_model_type(model_type)
     return jsonify({"model": MODEL.gen_json_data("plotting"), "errors": MODEL.errors, "model_coefs": MODEL.coefs_()})
 
+
+@app.route('/api/normalize/<normalize>')
+def update_normalize(normalize):
+    MODEL.update_normalize(normalize == 'true')
+    return jsonify({"model": MODEL.gen_json_data("plotting"), "errors": MODEL.errors, "model_coefs": MODEL.coefs_()})
+
+
+
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)

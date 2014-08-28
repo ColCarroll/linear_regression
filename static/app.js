@@ -37,7 +37,8 @@ linearRegressionApp.controller("ModelCtrl", function ModelCtrl($scope, $http) {
         ],
         degree: 3,
         modelType: $scope.modelTypes[0],
-        alpha: 1.0
+        alpha: 1.0,
+        normalize: false
     };
 
     $scope.data = {};
@@ -57,6 +58,17 @@ linearRegressionApp.controller("ModelCtrl", function ModelCtrl($scope, $http) {
 
     $scope.updateTexCoeffs = function(){
         $scope.texCoeffs = coeffsToMathJax(this.parameters.coeffs) + "+ \\mathscr{N}(0, " + this.parameters.noise + ")";
+    };
+
+    $scope.updateNormalize = function() {
+        $http({
+            method: 'GET',
+            url: "/api/normalize/" + this.parameters.normalize.toString()
+        }).success(function(data){
+            $scope.errors = data.errors;
+            $scope.model = data.model;
+            $scope.modelCoefs = coeffsToMathJax(data.model_coefs);
+        });
     };
 
     $scope.updateModel = function() {
