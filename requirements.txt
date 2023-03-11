@@ -7,4 +7,4 @@ numpy==1.22.0
 scikit-learn==0.13.1
 wsgiref==0.1.2
 scipy==0.11.0
-gunicorn==17.5
+gunicorn==19.5.0
